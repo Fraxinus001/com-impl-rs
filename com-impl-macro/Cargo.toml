@@ -8,6 +8,7 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-syn = { version = "0.15", features = ["full", "fold"] }
-quote = { version = "0.6", default-features = false }
-heck = "0.3"
+syn = { version = "1.0.73", features = ["full", "fold"] }
+quote = { version = "1.0.9", default-features = false }
+#quote = { version = "0.6", default-features = false }
+heck = "0.3.3"

@@ -60,7 +60,13 @@ pub fn implementation(attr: TokenStream, input: TokenStream) -> TokenStream {
     let parent: Option<syn::FieldValue> = if iface == "IUnknown" {
         None
     } else {
-        Some(parse_quote!(parent: Self::create_vtable()))
+        Some(parse_quote!(parent: Self::create_vtable()),)
+    };
+
+    // only add a comma, if parent is present
+    let comma = match &parent {
+        Some(_) => Some(quote!(,)),
+        None => None,
     };
 
     let vtable_creator = quote! {
@@ -69,13 +75,17 @@ pub fn implementation(attr: TokenStream, input: TokenStream) -> TokenStream {
                 use com_impl::ComInterface;
                 unsafe {
                     #vtable {
-                        #(#parent,)*
+                        #parent
+                        #comma
                         #(#methods: std::mem::transmute((Self::#fns) as usize),)*
                     }
                 }
             }
         }
     };
+
+    // TODO: Maybe conditional debug output?
+    //println!("{}", &vtable_creator.to_string());
 
     let expanded = quote! {
         #input
@@ -109,7 +119,7 @@ impl Fold for IUnknownImpl {
         match f {
             Fields::Named(named) => Fields::Named(self.fold_fields_named(named)),
             Fields::Unnamed(_) => panic!("Only structs with named fields are supported"),
-            Fields::Unit => panic!("Unit structs not supported, please append `{ }` to the struct definition"),
+            Fields::Unit => panic!("{}", "Unit structs not supported, please append `{ }` to the struct definition"),
         }
     }
 
@@ -125,7 +135,7 @@ impl Fold for IUnknownImpl {
     }
 }
 
-use syn::MethodSig;
+use syn::Signature;
 
 struct Implementation {
     // The identifiers of the interface methods.
@@ -133,7 +143,7 @@ struct Implementation {
 }
 
 impl Fold for Implementation {
-    fn fold_method_sig(&mut self, mut f: MethodSig) -> MethodSig {
+    fn fold_signature(&mut self, mut f: Signature) -> Signature {
         // Ensure the functions have the right ABI.
         f.abi = Some(parse_quote!(extern "system"));
 
